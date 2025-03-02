@@ -1,6 +1,7 @@
 import { useConfigs } from "./composables/useConfigs.js";
 import { useModels } from "./composables/useModels.js";
 import { useRealTime } from "./composables/useRealTime.js";
+import { useTextToSpeech } from "./composables/useTextToSpeech.js";
 import router from "../router/index.js";
 
 export default {
@@ -94,6 +95,7 @@ export default {
         const { fetchServerModels } = useModels();
         const { getConfigs } = useConfigs();
         const { socketIoConnection } = useRealTime();
+        const { loadVoices } = useTextToSpeech();
 
         const fileInput = Vue.ref(null);
         const menuOpen = Vue.ref(false);
@@ -111,10 +113,23 @@ export default {
             fileInput.value.click();
         }
 
-        Vue.onMounted(async ()=>{
-           await getConfigs();
-           await fetchServerModels();
-           await socketIoConnection();
+        // Add Ollama model detection
+        const detectOllamaModels = async () => {
+            try {
+                const response = await fetch('http://localhost:11434/api/tags');
+                const data = await response.json();
+                return data.models || [];
+            } catch (error) {
+                console.warn('Ollama not detected locally:', error);
+                return [];
+            }
+        };
+
+        Vue.onMounted(async () => {
+            await getConfigs();
+            await fetchServerModels();
+            await detectOllamaModels(); // Keep Ollama detection
+            await socketIoConnection();
         });
 
         function handleFileUpload(event) {
